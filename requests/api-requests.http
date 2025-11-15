@@ -56,6 +56,11 @@ Content-Type: application/json
   ]
 }
 
+> {%
+    client.global.set("bob_expense_id", response.body.id);
+    client.log("Bob Expense ID: " + response.body.id);
+%}
+
 ### Get All Users
 GET {{baseUrl}}/users
 
@@ -64,3 +69,19 @@ GET {{baseUrl}}/expenses
 
 ### Get Balances
 GET {{baseUrl}}/balances
+
+### Get Expense By ID
+GET {{baseUrl}}/expenses?id={{bob_expense_id}}
+
+### Get Bob's Expenses
+GET http://localhost:3000/expenses/user?user_id={{bob_id}}
+
+### Delete an Expense (use an expense ID)
+DELETE http://localhost:3000/expenses?id={{bob_expense_id}}
+
+> {%
+    client.log("Expense deleted");
+%}
+
+### Verify deletion - Get All Expenses (should have one less)
+GET http://localhost:3000/expenses

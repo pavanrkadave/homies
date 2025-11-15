@@ -154,3 +154,121 @@ func (h *ExpenseHandler) GetBalances(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(balances)
 }
+
+func (h *ExpenseHandler) GetExpenseByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "id parameter is required"})
+		return
+	}
+
+	expense, err := h.expenseUc.GetExpense(r.Context(), id)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	splits := make([]SplitResponse, len(expense.Splits))
+	for i, split := range expense.Splits {
+		splits[i] = SplitResponse{
+			UserId: split.UserID,
+			Amount: split.Amount,
+		}
+	}
+
+	expenseResponse := &ExpenseResponse{
+		ID:          expense.ID,
+		Description: expense.Description,
+		Amount:      expense.Amount,
+		Category:    expense.Category,
+		PaidBy:      expense.PaidBy,
+		Date:        expense.Date,
+		CreatedAt:   expense.CreatedAt,
+		Splits:      splits,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(expenseResponse)
+}
+
+func (h *ExpenseHandler) GetExpenseByUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "user_id parameter is required"})
+		return
+	}
+
+	expenses, err := h.expenseUc.GetExpensesByUser(r.Context(), userID)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	expenseResponse := make([]ExpenseResponse, len(expenses))
+	for i, expense := range expenses {
+		splits := make([]SplitResponse, len(expense.Splits))
+		for j, split := range expense.Splits {
+			splits[j] = SplitResponse{
+				UserId: split.UserID,
+				Amount: split.Amount,
+			}
+		}
+		expenseResponse[i] = ExpenseResponse{
+			ID:          expense.ID,
+			Description: expense.Description,
+			Amount:      expense.Amount,
+			Category:    expense.Category,
+			PaidBy:      expense.PaidBy,
+			Date:        expense.Date,
+			CreatedAt:   expense.CreatedAt,
+			Splits:      splits,
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(expenseResponse)
+}
+
+func (h *ExpenseHandler) DeleteExpense(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "id parameter is required"})
+		return
+	}
+
+	err := h.expenseUc.DeleteExpense(r.Context(), id)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

@@ -33,10 +33,24 @@ func main() {
 	http.HandleFunc("/expenses", func(writer http.ResponseWriter, request *http.Request) {
 		switch request.Method {
 		case http.MethodGet:
-			expenseHandler.GetAllExpenses(writer, request)
+			if request.URL.Query().Get("id") != "" {
+				expenseHandler.GetExpenseByID(writer, request)
+			} else {
+				expenseHandler.GetAllExpenses(writer, request)
+			}
 		case http.MethodPost:
 			expenseHandler.CreateExpense(writer, request)
+		case http.MethodDelete:
+			expenseHandler.DeleteExpense(writer, request)
 		default:
+			writer.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+
+	http.HandleFunc("/expenses/user", func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodGet {
+			expenseHandler.GetExpenseByUser(writer, request)
+		} else {
 			writer.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	})
