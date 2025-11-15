@@ -120,8 +120,8 @@ func (r *UserPostgresRepository) GetAll(ctx context.Context) ([]*domain.User, er
 }
 
 func (r *UserPostgresRepository) Update(ctx context.Context, user *domain.User) error {
-	query := `UPDATE users SET name = $1, updated_at = $2 WHERE id = $3`
-	_, err := r.db.ExecContext(ctx, query, user.Name, user.UpdatedAt, user.ID)
+	query := `UPDATE users SET name = $1, email = $2, updated_at = $3 WHERE id = $4`
+	_, err := r.db.ExecContext(ctx, query, user.Name, user.Email, user.UpdatedAt, user.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}

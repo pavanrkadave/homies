@@ -54,9 +54,15 @@ func main() {
 	mux.HandleFunc("/users", func(writer http.ResponseWriter, request *http.Request) {
 		switch request.Method {
 		case http.MethodGet:
-			userHandler.GetAllUsers(writer, request)
+			if request.URL.Query().Get("id") != "" {
+				userHandler.GetUserByID(writer, request)
+			} else {
+				userHandler.GetAllUsers(writer, request)
+			}
 		case http.MethodPost:
 			userHandler.CreateUser(writer, request)
+		case http.MethodPut:
+			userHandler.UpdateUser(writer, request)
 		default:
 			response.RespondWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
 		}

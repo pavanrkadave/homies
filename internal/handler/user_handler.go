@@ -23,6 +23,11 @@ type CreateUserRequest struct {
 	Email string `json:"email"`
 }
 
+type UpdateUserRequest struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
 type UserResponse struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
@@ -65,4 +70,65 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.RespondWithJSON(w, http.StatusOK, ToUserResponses(users))
+}
+
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		response.RespondWithError(w, http.StatusBadRequest, "User ID is required")
+		return
+	}
+
+	var req UpdateUserRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		response.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	user, err := h.userUC.UpdateUser(r.Context(), id, req.Name, req.Email)
+	if err != nil {
+		if err.Error() == "user not found" {
+			response.RespondWithError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		if err.Error() == "email already exists" {
+			response.RespondWithError(w, http.StatusConflict, err.Error())
+			return
+		}
+		response.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.RespondWithJSON(w, http.StatusOK, ToUserResponse(user))
+}
+
+func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		response.RespondWithError(w, http.StatusBadRequest, "User ID is required")
+		return
+	}
+
+	user, err := h.userUC.GetUser(r.Context(), id)
+	if err != nil {
+		if err.Error() == "user not found" {
+			response.RespondWithError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		response.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.RespondWithJSON(w, http.StatusOK, ToUserResponse(user))
 }

@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+var ErrEmailAlreadyExists = errors.New("email already exists")
+
 type User struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`

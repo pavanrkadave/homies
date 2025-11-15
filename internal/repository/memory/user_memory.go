@@ -58,3 +58,15 @@ func (repo *UserMemoryRepository) GetAll(ctx context.Context) ([]*domain.User, e
 	}
 	return users, nil
 }
+
+func (repo *UserMemoryRepository) Update(ctx context.Context, user *domain.User) error {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+
+	if _, exists := repo.users[user.ID]; !exists {
+		return fmt.Errorf("user not found")
+	}
+
+	repo.users[user.ID] = user
+	return nil
+}
