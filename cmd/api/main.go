@@ -7,9 +7,11 @@ import (
 
 	"github.com/pavanrkadave/homies/config"
 	"github.com/pavanrkadave/homies/internal/handler"
+	"github.com/pavanrkadave/homies/internal/middleware"
 	"github.com/pavanrkadave/homies/internal/repository/postgres"
 	"github.com/pavanrkadave/homies/internal/usecase"
 	"github.com/pavanrkadave/homies/pkg/database"
+	"github.com/pavanrkadave/homies/pkg/errors"
 )
 
 func main() {
@@ -41,20 +43,26 @@ func main() {
 	// Init Handlers
 	userHandler := handler.NewUserHandler(userUC)
 	expenseHandler := handler.NewExpenseHandler(expenseUC)
+	healthHandler := handler.NewHealthHandler(db)
+
+	mux := http.NewServeMux()
+
+	// Healthcheck
+	mux.HandleFunc("/health", healthHandler.Health)
 
 	// API Routes
-	http.HandleFunc("/users", func(writer http.ResponseWriter, request *http.Request) {
+	mux.HandleFunc("/users", func(writer http.ResponseWriter, request *http.Request) {
 		switch request.Method {
 		case http.MethodGet:
 			userHandler.GetAllUsers(writer, request)
 		case http.MethodPost:
 			userHandler.CreateUser(writer, request)
 		default:
-			writer.WriteHeader(http.StatusMethodNotAllowed)
+			errors.ResponseWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
 		}
 	})
 
-	http.HandleFunc("/expenses", func(writer http.ResponseWriter, request *http.Request) {
+	mux.HandleFunc("/expenses", func(writer http.ResponseWriter, request *http.Request) {
 		switch request.Method {
 		case http.MethodGet:
 			if request.URL.Query().Get("id") != "" {
@@ -67,27 +75,29 @@ func main() {
 		case http.MethodDelete:
 			expenseHandler.DeleteExpense(writer, request)
 		default:
-			writer.WriteHeader(http.StatusMethodNotAllowed)
+			errors.ResponseWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
 		}
 	})
 
-	http.HandleFunc("/expenses/user", func(writer http.ResponseWriter, request *http.Request) {
+	mux.HandleFunc("/expenses/user", func(writer http.ResponseWriter, request *http.Request) {
 		if request.Method == http.MethodGet {
 			expenseHandler.GetExpenseByUser(writer, request)
 		} else {
-			writer.WriteHeader(http.StatusMethodNotAllowed)
+			errors.ResponseWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
 		}
 	})
 
-	http.HandleFunc("/balances", func(writer http.ResponseWriter, request *http.Request) {
+	mux.HandleFunc("/balances", func(writer http.ResponseWriter, request *http.Request) {
 		switch request.Method {
 		case http.MethodGet:
 			expenseHandler.GetBalances(writer, request)
 		default:
-			writer.WriteHeader(http.StatusMethodNotAllowed)
+			errors.ResponseWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
 		}
 	})
 
-	log.Printf("✓ Server starting on :%s", cfg.Server.Port)
-	log.Fatal(http.ListenAndServe(":"+cfg.Server.Port, nil))
+	middlewareHandler := middleware.Recovery(middleware.Logger(middleware.CORS(mux)))
+
+	log.Printf("✓ Server starting on :%s with middleware enabled", cfg.Server.Port)
+	log.Fatal(http.ListenAndServe(":"+cfg.Server.Port, middlewareHandler))
 }

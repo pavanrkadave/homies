@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pavanrkadave/homies/internal/usecase"
+	"github.com/pavanrkadave/homies/pkg/errors"
 )
 
 type UserHandler struct {
@@ -33,24 +34,20 @@ type UserResponse struct {
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		errors.ResponseWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
 	var req CreateUserRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request body"})
+		errors.ResponseWithError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	user, err := h.userUC.CreateUser(r.Context(), req.Name, req.Email)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		errors.ResponseWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -67,14 +64,12 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		errors.ResponseWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 	users, err := h.userUC.GetAllUsers(r.Context())
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		errors.ResponseWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	usersResponse := make([]UserResponse, 0)

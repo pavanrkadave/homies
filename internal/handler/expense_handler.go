@@ -7,6 +7,7 @@ import (
 
 	"github.com/pavanrkadave/homies/internal/domain"
 	"github.com/pavanrkadave/homies/internal/usecase"
+	"github.com/pavanrkadave/homies/pkg/errors"
 )
 
 type ExpenseHandler struct {
@@ -46,16 +47,14 @@ type SplitResponse struct {
 
 func (h *ExpenseHandler) CreateExpense(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		errors.ResponseWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
 	var req ExpenseRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request body"})
+		errors.ResponseWithError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
@@ -68,9 +67,7 @@ func (h *ExpenseHandler) CreateExpense(w http.ResponseWriter, r *http.Request) {
 	}
 	expense, err := h.expenseUc.CreateExpense(r.Context(), req.Description, req.Category, req.PaidBy, req.Amount, splits)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		errors.ResponseWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -99,14 +96,12 @@ func (h *ExpenseHandler) CreateExpense(w http.ResponseWriter, r *http.Request) {
 
 func (h *ExpenseHandler) GetAllExpenses(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		errors.ResponseWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 	expenses, err := h.expenseUc.GetAllExpenses(r.Context())
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		errors.ResponseWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	expenseResponse := make([]ExpenseResponse, len(expenses))
@@ -138,15 +133,13 @@ func (h *ExpenseHandler) GetAllExpenses(w http.ResponseWriter, r *http.Request) 
 
 func (h *ExpenseHandler) GetBalances(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		errors.ResponseWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
 	balances, err := h.expenseUc.CalculateBalances(r.Context())
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		errors.ResponseWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -157,23 +150,19 @@ func (h *ExpenseHandler) GetBalances(w http.ResponseWriter, r *http.Request) {
 
 func (h *ExpenseHandler) GetExpenseByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		errors.ResponseWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "id parameter is required"})
+		errors.ResponseWithError(w, http.StatusBadRequest, "id parameter is required")
 		return
 	}
 
 	expense, err := h.expenseUc.GetExpense(r.Context(), id)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		errors.ResponseWithError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
@@ -203,23 +192,19 @@ func (h *ExpenseHandler) GetExpenseByID(w http.ResponseWriter, r *http.Request) 
 
 func (h *ExpenseHandler) GetExpenseByUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		errors.ResponseWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
 	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "user_id parameter is required"})
+		errors.ResponseWithError(w, http.StatusBadRequest, "user_id parameter is required")
 		return
 	}
 
 	expenses, err := h.expenseUc.GetExpensesByUser(r.Context(), userID)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		errors.ResponseWithError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
@@ -251,23 +236,19 @@ func (h *ExpenseHandler) GetExpenseByUser(w http.ResponseWriter, r *http.Request
 
 func (h *ExpenseHandler) DeleteExpense(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		errors.ResponseWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "id parameter is required"})
+		errors.ResponseWithError(w, http.StatusBadRequest, "id parameter is required")
 		return
 	}
 
 	err := h.expenseUc.DeleteExpense(r.Context(), id)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		errors.ResponseWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
