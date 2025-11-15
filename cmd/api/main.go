@@ -11,7 +11,7 @@ import (
 	"github.com/pavanrkadave/homies/internal/repository/postgres"
 	"github.com/pavanrkadave/homies/internal/usecase"
 	"github.com/pavanrkadave/homies/pkg/database"
-	"github.com/pavanrkadave/homies/pkg/errors"
+	"github.com/pavanrkadave/homies/pkg/response"
 )
 
 func main() {
@@ -58,7 +58,7 @@ func main() {
 		case http.MethodPost:
 			userHandler.CreateUser(writer, request)
 		default:
-			errors.ResponseWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
+			response.RespondWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
 		}
 	})
 
@@ -75,7 +75,7 @@ func main() {
 		case http.MethodDelete:
 			expenseHandler.DeleteExpense(writer, request)
 		default:
-			errors.ResponseWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
+			response.RespondWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
 		}
 	})
 
@@ -83,7 +83,7 @@ func main() {
 		if request.Method == http.MethodGet {
 			expenseHandler.GetExpenseByUser(writer, request)
 		} else {
-			errors.ResponseWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
+			response.RespondWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
 		}
 	})
 
@@ -92,7 +92,7 @@ func main() {
 		case http.MethodGet:
 			expenseHandler.GetBalances(writer, request)
 		default:
-			errors.ResponseWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
+			response.RespondWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
 		}
 	})
 

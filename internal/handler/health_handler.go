@@ -2,10 +2,9 @@ package handler
 
 import (
 	"database/sql"
-	"encoding/json"
 	"net/http"
 
-	"github.com/pavanrkadave/homies/pkg/errors"
+	"github.com/pavanrkadave/homies/pkg/response"
 )
 
 type HealthHandler struct {
@@ -23,7 +22,7 @@ type HealthResponse struct {
 
 func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		errors.ResponseWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
@@ -32,12 +31,10 @@ func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 		dbStatus = "unhealthy"
 	}
 
-	response := HealthResponse{
+	healthResponse := HealthResponse{
 		Status:   "ok",
 		Database: dbStatus,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(response)
+	response.RespondWithJSON(w, http.StatusOK, healthResponse)
 }
