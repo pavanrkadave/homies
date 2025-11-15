@@ -1,0 +1,66 @@
+### Create User 1 - John
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@test.com"
+}
+
+> {%
+    client.global.set("john_id", response.body.id);
+    client.log("John ID: " + response.body.id);
+%}
+
+### Create User 2 - Bob
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "name": "Bob Marley",
+  "email": "bob@test.com"
+}
+
+> {%
+    client.global.set("bob_id", response.body.id);
+    client.log("Bob ID: " + response.body.id);
+%}
+
+### Create Expense 1 - John paid for Groceries
+POST {{baseUrl}}/expenses
+Content-Type: application/json
+
+{
+  "description": "Groceries",
+  "amount": 100.00,
+  "category": "groceries",
+  "paid_by": "{{john_id}}",
+  "splits": [
+    {"user_id": "{{john_id}}", "amount": 50.00},
+    {"user_id": "{{bob_id}}", "amount": 50.00}
+  ]
+}
+
+### Create Expense 2 - Bob paid for Dinner
+POST {{baseUrl}}/expenses
+Content-Type: application/json
+
+{
+  "description": "Dinner",
+  "amount": 80.00,
+  "category": "food",
+  "paid_by": "{{bob_id}}",
+  "splits": [
+    {"user_id": "{{bob_id}}", "amount": 40.00},
+    {"user_id": "{{john_id}}", "amount": 40.00}
+  ]
+}
+
+### Get All Users
+GET {{baseUrl}}/users
+
+### Get All Expenses
+GET {{baseUrl}}/expenses
+
+### Get Balances
+GET {{baseUrl}}/balances

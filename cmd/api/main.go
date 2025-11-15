@@ -41,6 +41,15 @@ func main() {
 		}
 	})
 
+	http.HandleFunc("/balances", func(writer http.ResponseWriter, request *http.Request) {
+		switch request.Method {
+		case http.MethodGet:
+			expenseHandler.GetBalances(writer, request)
+		default:
+			writer.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+
 	log.Println("Server starting on :3000")
 	log.Fatal(http.ListenAndServe(":3000", nil))
 }
