@@ -1,0 +1,11 @@
+POST http://localhost:3000/users
+Content-Type: application/json
+
+{
+  "name": "Namita Joshi",
+  "email": "nammu@email.com"
+}
+
+
+### GET request retrieve users
+GET http://localhost:3000/users

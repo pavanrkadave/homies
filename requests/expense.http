@@ -1,0 +1,23 @@
+POST http://localhost:3000/expenses
+Content-Type: application/json
+
+{
+  "description": "Perfume",
+  "amount": 100,
+  "category": "Luxury",
+  "paid_by": "e47756fc-670a-4f05-a61e-97b9cd0014c9",
+  "splits": [
+    {
+      "user_id": "e47756fc-670a-4f05-a61e-97b9cd0014c9",
+      "amount": 50
+    },
+    {
+      "user_id": "020aade7-ccfe-4006-bdfc-5e25376af6a2",
+      "amount": 50
+    }
+  ]
+}
+
+
+### GET request retrieve users
+GET http://localhost:3000/expenses
