@@ -1,10 +1,14 @@
-# Quick Reference - Phase 1 Complete ✅
+# Quick Reference - Phase 1 & 2 Complete ✅
 
 ## What Was Implemented
 
 **Phase 1: User Management Enhancements**
 - Feature 1.1: Update User Endpoint ✅
 - Feature 1.2: Get User by ID Endpoint ✅
+
+**Phase 2: Expense Enhancements**
+- Feature 2.1: Update Expense Endpoint ✅
+- Feature 2.2: Equal Split Helper ✅
 
 ## New API Endpoints
 
@@ -40,8 +44,62 @@ curl -X PUT "http://localhost:3000/users?id=abc123" \
 
 ---
 
+### PUT /expenses?id={id}
+Update an existing expense (description, category, amount, splits)
+
+**Example:**
+```bash
+curl -X PUT "http://localhost:3000/expenses?id=abc123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description":"Updated Description",
+    "amount":150.00,
+    "category":"dining",
+    "paid_by":"user-id",
+    "splits":[
+      {"user_id":"user1","amount":75.00},
+      {"user_id":"user2","amount":75.00}
+    ]
+  }'
+```
+
+**Response Codes:**
+- 200: Update successful
+- 400: Validation error (splits don't sum to amount)
+- 404: Expense not found
+
+---
+
+### POST /expenses/equal-split
+Create expense with automatic equal split calculation
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/expenses/equal-split \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description":"Team Dinner",
+    "amount":100.00,
+    "category":"food",
+    "paid_by":"user-id",
+    "user_ids":["user1","user2","user3"]
+  }'
+```
+
+**Response:**
+- Automatically calculates equal splits (e.g., 100/3 = 33.33, 33.33, 33.34)
+- Last user gets remainder to ensure exact total
+- Returns created expense with splits
+
+**Response Codes:**
+- 201: Expense created successfully
+- 400: Validation error
+
+---
+
 ## Files Modified
 
+**Phase 1:**
 1. `internal/domain/user.go` - Added ErrEmailAlreadyExists
 2. `internal/repository/user_repository.go` - Added Update method
 3. `internal/repository/postgres/user_postgres_repository.go` - Implemented Update
@@ -49,17 +107,28 @@ curl -X PUT "http://localhost:3000/users?id=abc123" \
 5. `internal/usecase/user_usecase.go` - Added UpdateUser method
 6. `internal/usecase/user_usecase_test.go` - Added 3 test cases
 7. `internal/handler/user_handler.go` - Added 2 handler methods
-8. `cmd/api/main.go` - Updated routing logic
+
+**Phase 2:**
+8. `internal/domain/expense.go` - Added Update method
+9. `internal/repository/expense_repository.go` - Added Update method
+10. `internal/repository/postgres/expense_postgres_repository.go` - Implemented Update with transactions
+11. `internal/repository/memory/expense_memory.go` - Implemented Update
+12. `internal/usecase/expense_usecase.go` - Added UpdateExpense and CreateExpenseWithEqualSplit
+13. `internal/usecase/expense_usecase_test.go` - Created with 7 test cases
+14. `internal/handler/expense_handler.go` - Added UpdateExpense and CreateExpenseWithEqualSplit handlers
+15. `cmd/api/main.go` - Added PUT /expenses and POST /expenses/equal-split routes
 
 ---
 
 ## Test Results
 
-✅ All unit tests passing (5/5)
+✅ All unit tests passing (12/12)
+  - User use case: 5 tests
+  - Expense use case: 7 tests
 ✅ All integration tests verified
 ✅ Application builds successfully
 ✅ Docker containers running
-✅ Endpoints functional
+✅ All endpoints functional
 
 ---
 
@@ -121,9 +190,12 @@ curl -X GET "http://localhost:3000/users?id=$USER_ID"
 
 ## Git Status
 
-**Latest Commit:**
+**Latest Commits:**
 ```
+feat: Add equal split helper endpoint
+feat: Add expense update endpoint
 feat: Add user update and get by ID endpoints
+docs: Add Phase 1 implementation documentation
 ```
 
 **To push changes:**
@@ -135,11 +207,12 @@ git push origin main
 
 ## Next Steps
 
-Ready to implement **Phase 2: Expense Enhancements**
+Ready to implement **Phase 3: Filtering & Search**
 
-**Phase 2 Features:**
-- 2.1: Update Expense Endpoint
-- 2.2: Equal Split Helper
+**Phase 3 Features:**
+- 3.1: Filter Expenses by Date Range
+- 3.2: Filter Expenses by Category
+- 3.3: Combined Filters
 
 ---
 
@@ -164,6 +237,6 @@ Ready to implement **Phase 2: Expense Enhancements**
 
 ---
 
-**Status: Phase 1 COMPLETE ✅**
-**Date: November 15, 2025**
+**Status: Phase 1 & 2 COMPLETE ✅**
+**Date: November 16, 2025**
 
