@@ -14,7 +14,8 @@
 | Phase 1 | User Management Enhancements | ✅ COMPLETE | 5/5 ✅ |
 | Phase 2 | Expense Enhancements | ✅ COMPLETE | 7/7 ✅ |
 | Phase 3 | Filtering & Search | ✅ COMPLETE | 4/4 ✅ |
-| **Total** | **8 Features** | **✅ COMPLETE** | **16/16 ✅** |
+| Phase 4 | Statistics & Reporting | ✅ COMPLETE | 5/5 ✅ |
+| **Total** | **10 Features** | **✅ COMPLETE** | **21/21 ✅** |
 
 ---
 
@@ -58,6 +59,19 @@
    - No filters = all expenses
    - Optional query parameters
 
+### Phase 4: Statistics & Reporting (2 features)
+9. ✅ **User Spending Statistics** - `GET /users/stats?user_id={id}`
+   - Total paid, total owed, net balance
+   - Expense count
+   - Category-wise breakdown
+
+10. ✅ **Monthly Summary** - `GET /expenses/monthly?year=2025&month=11`
+    - Total expenses for the month
+    - Expense count
+    - Category breakdown
+    - Top category identification
+    - Average spending per day
+
 ---
 
 ## 📈 Statistics
@@ -70,9 +84,9 @@
 - **API Endpoints:** 8 new/enhanced endpoints
 
 ### Test Coverage
-- **Total Tests:** 16 (100% passing ✅)
+- **Total Tests:** 21 (100% passing ✅)
   - User use case: 5 tests
-  - Expense use case: 11 tests
+  - Expense use case: 16 tests (including Phase 4 statistics)
 - **Test Types:**
   - Happy path tests
   - Error handling tests
