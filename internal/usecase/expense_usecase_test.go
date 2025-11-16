@@ -58,6 +58,53 @@ func (m *mockExpenseRepository) Update(ctx context.Context, expense *domain.Expe
 	return nil
 }
 
+func (m *mockExpenseRepository) GetByDateRange(ctx context.Context, startDate, endDate string) ([]*domain.Expense, error) {
+	var expenses []*domain.Expense
+	for _, expense := range m.expenses {
+		dateStr := expense.Date.Format("2006-01-02")
+		if dateStr >= startDate && dateStr <= endDate {
+			expenses = append(expenses, expense)
+		}
+	}
+	return expenses, nil
+}
+
+func (m *mockExpenseRepository) GetByCategory(ctx context.Context, category string) ([]*domain.Expense, error) {
+	var expenses []*domain.Expense
+	for _, expense := range m.expenses {
+		if expense.Category == category {
+			expenses = append(expenses, expense)
+		}
+	}
+	return expenses, nil
+}
+
+func (m *mockExpenseRepository) GetByFilters(ctx context.Context, category, startDate, endDate string) ([]*domain.Expense, error) {
+	var expenses []*domain.Expense
+	for _, expense := range m.expenses {
+		match := true
+
+		if category != "" && expense.Category != category {
+			match = false
+		}
+
+		if startDate != "" || endDate != "" {
+			dateStr := expense.Date.Format("2006-01-02")
+			if startDate != "" && dateStr < startDate {
+				match = false
+			}
+			if endDate != "" && dateStr > endDate {
+				match = false
+			}
+		}
+
+		if match {
+			expenses = append(expenses, expense)
+		}
+	}
+	return expenses, nil
+}
+
 func (m *mockExpenseRepository) Delete(ctx context.Context, id string) error {
 	delete(m.expenses, id)
 	return nil
@@ -248,5 +295,96 @@ func TestExpenseUseCase_CreateExpenseWithEqualSplit_UnevenAmount(t *testing.T) {
 
 	if total != 100.0 {
 		t.Errorf("Expected total splits to be 100.0 even with rounding, got: %v", total)
+	}
+}
+
+func TestExpenseUseCase_GetExpensesByCategory(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Create test user
+	user1 := &domain.User{ID: "user1", Name: "User1", Email: "user1@test.com"}
+	_ = userRepo.Create(ctx, user1)
+
+	// Create expenses with different categories
+	_, _ = expenseUC.CreateExpense(ctx, "Groceries", "food", user1.ID, 100.0, []domain.Split{{UserID: user1.ID, Amount: 100.0}})
+	_, _ = expenseUC.CreateExpense(ctx, "Restaurant", "food", user1.ID, 50.0, []domain.Split{{UserID: user1.ID, Amount: 50.0}})
+	_, _ = expenseUC.CreateExpense(ctx, "Movie", "entertainment", user1.ID, 20.0, []domain.Split{{UserID: user1.ID, Amount: 20.0}})
+
+	// Get expenses by category
+	expenses, err := expenseUC.GetExpensesByCategory(ctx, "food")
+	if err != nil {
+		t.Fatalf("Failed to get expenses by category: %v", err)
+	}
+
+	// Verify we got 2 food expenses
+	if len(expenses) != 2 {
+		t.Errorf("Expected 2 food expenses, got: %v", len(expenses))
+	}
+}
+
+func TestExpenseUseCase_GetExpensesByCategory_EmptyCategory(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Try to get expenses with empty category
+	_, err := expenseUC.GetExpensesByCategory(ctx, "")
+	if err == nil {
+		t.Fatal("Expected error for empty category, got nil")
+	}
+}
+
+func TestExpenseUseCase_GetExpensesByFilters(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Create test user
+	user1 := &domain.User{ID: "user1", Name: "User1", Email: "user1@test.com"}
+	_ = userRepo.Create(ctx, user1)
+
+	// Create test expenses
+	_, _ = expenseUC.CreateExpense(ctx, "Groceries", "food", user1.ID, 100.0, []domain.Split{{UserID: user1.ID, Amount: 100.0}})
+	_, _ = expenseUC.CreateExpense(ctx, "Movie", "entertainment", user1.ID, 20.0, []domain.Split{{UserID: user1.ID, Amount: 20.0}})
+
+	// Test with category filter only
+	expenses, err := expenseUC.GetExpensesByFilters(ctx, "food", "", "")
+	if err != nil {
+		t.Fatalf("Failed to get expenses by filters: %v", err)
+	}
+
+	if len(expenses) != 1 {
+		t.Errorf("Expected 1 food expense, got: %v", len(expenses))
+	}
+}
+
+func TestExpenseUseCase_GetExpensesByFilters_NoFilters(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Create test user
+	user1 := &domain.User{ID: "user1", Name: "User1", Email: "user1@test.com"}
+	_ = userRepo.Create(ctx, user1)
+
+	// Create test expenses
+	_, _ = expenseUC.CreateExpense(ctx, "Expense 1", "food", user1.ID, 100.0, []domain.Split{{UserID: user1.ID, Amount: 100.0}})
+	_, _ = expenseUC.CreateExpense(ctx, "Expense 2", "entertainment", user1.ID, 50.0, []domain.Split{{UserID: user1.ID, Amount: 50.0}})
+
+	// Get all expenses (no filters)
+	expenses, err := expenseUC.GetExpensesByFilters(ctx, "", "", "")
+	if err != nil {
+		t.Fatalf("Failed to get expenses: %v", err)
+	}
+
+	// Should return all expenses
+	if len(expenses) != 2 {
+		t.Errorf("Expected 2 expenses, got: %v", len(expenses))
 	}
 }

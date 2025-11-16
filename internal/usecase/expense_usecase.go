@@ -17,6 +17,9 @@ type ExpenseUseCase interface {
 	GetExpense(ctx context.Context, id string) (*domain.Expense, error)
 	GetAllExpenses(ctx context.Context) ([]*domain.Expense, error)
 	GetExpensesByUser(ctx context.Context, userID string) ([]*domain.Expense, error)
+	GetExpensesByDateRange(ctx context.Context, startDate, endDate string) ([]*domain.Expense, error)
+	GetExpensesByCategory(ctx context.Context, category string) ([]*domain.Expense, error)
+	GetExpensesByFilters(ctx context.Context, category, startDate, endDate string) ([]*domain.Expense, error)
 	UpdateExpense(ctx context.Context, id, description, category string, amount float64, splits []domain.Split) (*domain.Expense, error)
 	DeleteExpense(ctx context.Context, id string) error
 	CalculateBalances(ctx context.Context) (*domain.BalanceSummary, error)
@@ -129,6 +132,34 @@ func (e *expenseUseCase) GetExpensesByUser(ctx context.Context, userID string) (
 		return nil, err
 	}
 	return e.expenseRepo.GetByUserID(ctx, userID)
+}
+
+func (e *expenseUseCase) GetExpensesByDateRange(ctx context.Context, startDate, endDate string) ([]*domain.Expense, error) {
+	if startDate == "" || endDate == "" {
+		return nil, errors.New("both start_date and end_date are required")
+	}
+	return e.expenseRepo.GetByDateRange(ctx, startDate, endDate)
+}
+
+func (e *expenseUseCase) GetExpensesByCategory(ctx context.Context, category string) ([]*domain.Expense, error) {
+	if category == "" {
+		return nil, errors.New("category is required")
+	}
+	return e.expenseRepo.GetByCategory(ctx, category)
+}
+
+func (e *expenseUseCase) GetExpensesByFilters(ctx context.Context, category, startDate, endDate string) ([]*domain.Expense, error) {
+	// If no filters provided, return all expenses
+	if category == "" && startDate == "" && endDate == "" {
+		return e.expenseRepo.GetAll(ctx)
+	}
+
+	// Validate date range if provided
+	if (startDate != "" && endDate == "") || (startDate == "" && endDate != "") {
+		return nil, errors.New("both start_date and end_date must be provided together")
+	}
+
+	return e.expenseRepo.GetByFilters(ctx, category, startDate, endDate)
 }
 
 func (e *expenseUseCase) UpdateExpense(ctx context.Context, id, description, category string, amount float64, splits []domain.Split) (*domain.Expense, error) {

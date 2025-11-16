@@ -324,6 +324,122 @@ func (r *ExpensePostgresRepository) Update(ctx context.Context, expense *domain.
 	return nil
 }
 
+func (r *ExpensePostgresRepository) GetByDateRange(ctx context.Context, startDate, endDate string) ([]*domain.Expense, error) {
+	query := `
+		SELECT id, description, amount, category, paid_by, date, created_at, updated_at
+		FROM expenses
+		WHERE date >= $1 AND date <= $2
+		ORDER BY date DESC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get expenses by date range: %w", err)
+	}
+	defer rows.Close()
+
+	return r.scanExpensesWithSplits(ctx, rows)
+}
+
+func (r *ExpensePostgresRepository) GetByCategory(ctx context.Context, category string) ([]*domain.Expense, error) {
+	query := `
+		SELECT id, description, amount, category, paid_by, date, created_at, updated_at
+		FROM expenses
+		WHERE LOWER(category) = LOWER($1)
+		ORDER BY date DESC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, category)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get expenses by category: %w", err)
+	}
+	defer rows.Close()
+
+	return r.scanExpensesWithSplits(ctx, rows)
+}
+
+func (r *ExpensePostgresRepository) GetByFilters(ctx context.Context, category, startDate, endDate string) ([]*domain.Expense, error) {
+	query := `SELECT id, description, amount, category, paid_by, date, created_at, updated_at FROM expenses WHERE 1=1`
+	args := make([]interface{}, 0)
+	argCount := 1
+
+	if category != "" {
+		query += fmt.Sprintf(" AND LOWER(category) = LOWER($%d)", argCount)
+		args = append(args, category)
+		argCount++
+	}
+
+	if startDate != "" {
+		query += fmt.Sprintf(" AND date >= $%d", argCount)
+		args = append(args, startDate)
+		argCount++
+	}
+
+	if endDate != "" {
+		query += fmt.Sprintf(" AND date <= $%d", argCount)
+		args = append(args, endDate)
+		argCount++
+	}
+
+	query += " ORDER BY date DESC"
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get expenses with filters: %w", err)
+	}
+	defer rows.Close()
+
+	return r.scanExpensesWithSplits(ctx, rows)
+}
+
+func (r *ExpensePostgresRepository) scanExpensesWithSplits(ctx context.Context, rows *sql.Rows) ([]*domain.Expense, error) {
+	var expenses []*domain.Expense
+
+	for rows.Next() {
+		expense := &domain.Expense{}
+		if err := rows.Scan(
+			&expense.ID,
+			&expense.Description,
+			&expense.Amount,
+			&expense.Category,
+			&expense.PaidBy,
+			&expense.Date,
+			&expense.CreatedAt,
+			&expense.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		expenses = append(expenses, expense)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Get splits for each expense
+	for _, expense := range expenses {
+		splitsQuery := `SELECT expense_id, user_id, amount FROM splits WHERE expense_id = $1`
+		splitRows, err := r.db.QueryContext(ctx, splitsQuery, expense.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get splits: %w", err)
+		}
+
+		var splits []domain.Split
+		for splitRows.Next() {
+			var split domain.Split
+			if err := splitRows.Scan(&split.ExpenseID, &split.UserID, &split.Amount); err != nil {
+				splitRows.Close()
+				return nil, fmt.Errorf("failed to scan split: %w", err)
+			}
+			splits = append(splits, split)
+		}
+		splitRows.Close()
+		expense.Splits = splits
+	}
+
+	return expenses, nil
+}
+
 func (r *ExpensePostgresRepository) Delete(ctx context.Context, id string) error {
 	deleteExpenseQuery := `DELETE FROM expenses WHERE id = $1`
 	_, err := r.db.ExecContext(ctx, deleteExpenseQuery, id)

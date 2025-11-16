@@ -11,6 +11,9 @@ type ExpenseRepository interface {
 	GetByID(ctx context.Context, id string) (*domain.Expense, error)
 	GetAll(ctx context.Context) ([]*domain.Expense, error)
 	GetByUserID(ctx context.Context, userID string) ([]*domain.Expense, error)
+	GetByDateRange(ctx context.Context, startDate, endDate string) ([]*domain.Expense, error)
+	GetByCategory(ctx context.Context, category string) ([]*domain.Expense, error)
+	GetByFilters(ctx context.Context, category, startDate, endDate string) ([]*domain.Expense, error)
 	Update(ctx context.Context, expense *domain.Expense) error
 	Delete(ctx context.Context, id string) error
 }

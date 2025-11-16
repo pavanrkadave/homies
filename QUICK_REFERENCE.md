@@ -1,4 +1,4 @@
-# Quick Reference - Phase 1 & 2 Complete ✅
+# Quick Reference - Phase 1, 2 & 3 Complete ✅
 
 ## What Was Implemented
 
@@ -9,6 +9,11 @@
 **Phase 2: Expense Enhancements**
 - Feature 2.1: Update Expense Endpoint ✅
 - Feature 2.2: Equal Split Helper ✅
+
+**Phase 3: Filtering & Search**
+- Feature 3.1: Filter Expenses by Date Range ✅
+- Feature 3.2: Filter Expenses by Category ✅
+- Feature 3.3: Combined Filters ✅
 
 ## New API Endpoints
 
@@ -97,6 +102,37 @@ curl -X POST http://localhost:3000/expenses/equal-split \
 
 ---
 
+### GET /expenses (with filters)
+Filter expenses by category, date range, or both
+
+**Filter by Category:**
+```bash
+curl "http://localhost:3000/expenses?category=food"
+```
+
+**Filter by Date Range:**
+```bash
+curl "http://localhost:3000/expenses?start_date=2025-11-01&end_date=2025-11-30"
+```
+
+**Combined Filters:**
+```bash
+curl "http://localhost:3000/expenses?category=food&start_date=2025-11-01&end_date=2025-11-30"
+```
+
+**Features:**
+- Case-insensitive category matching
+- ISO 8601 date format (YYYY-MM-DD)
+- Both start_date and end_date required together
+- No filters returns all expenses
+- Results sorted by date descending
+
+**Response Codes:**
+- 200: Success
+- 400: Invalid parameters (e.g., missing end_date)
+
+---
+
 ## Files Modified
 
 **Phase 1:**
@@ -118,13 +154,21 @@ curl -X POST http://localhost:3000/expenses/equal-split \
 14. `internal/handler/expense_handler.go` - Added UpdateExpense and CreateExpenseWithEqualSplit handlers
 15. `cmd/api/main.go` - Added PUT /expenses and POST /expenses/equal-split routes
 
+**Phase 3:**
+16. `internal/repository/expense_repository.go` - Added 3 filter methods to interface
+17. `internal/repository/postgres/expense_postgres_repository.go` - Implemented filters with dynamic SQL + helper
+18. `internal/repository/memory/expense_memory.go` - Implemented 3 filter methods
+19. `internal/usecase/expense_usecase.go` - Added 3 use case methods with validation
+20. `internal/handler/expense_handler.go` - Enhanced GetAllExpenses to support query params
+21. `internal/usecase/expense_usecase_test.go` - Added 4 new filter tests (total: 11 tests)
+
 ---
 
 ## Test Results
 
-✅ All unit tests passing (12/12)
+✅ All unit tests passing (16/16)
   - User use case: 5 tests
-  - Expense use case: 7 tests
+  - Expense use case: 11 tests (7 Phase 2 + 4 Phase 3)
 ✅ All integration tests verified
 ✅ Application builds successfully
 ✅ Docker containers running
@@ -192,6 +236,7 @@ curl -X GET "http://localhost:3000/users?id=$USER_ID"
 
 **Latest Commits:**
 ```
+feat: Add expense filtering and search capabilities
 feat: Add equal split helper endpoint
 feat: Add expense update endpoint
 feat: Add user update and get by ID endpoints
@@ -207,12 +252,11 @@ git push origin main
 
 ## Next Steps
 
-Ready to implement **Phase 3: Filtering & Search**
+Ready to implement **Phase 4: Statistics & Reporting**
 
-**Phase 3 Features:**
-- 3.1: Filter Expenses by Date Range
-- 3.2: Filter Expenses by Category
-- 3.3: Combined Filters
+**Phase 4 Features:**
+- 4.1: User Spending Summary
+- 4.2: Monthly Summary
 
 ---
 
@@ -237,6 +281,6 @@ Ready to implement **Phase 3: Filtering & Search**
 
 ---
 
-**Status: Phase 1 & 2 COMPLETE ✅**
+**Status: Phase 1, 2 & 3 COMPLETE ✅**
 **Date: November 16, 2025**
 

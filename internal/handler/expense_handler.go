@@ -109,9 +109,24 @@ func (h *ExpenseHandler) GetAllExpenses(w http.ResponseWriter, r *http.Request) 
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	expenses, err := h.expenseUc.GetAllExpenses(r.Context())
+
+	// Check for filter query parameters
+	category := r.URL.Query().Get("category")
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+
+	var expenses []*domain.Expense
+	var err error
+
+	// Use filters if any are provided
+	if category != "" || startDate != "" || endDate != "" {
+		expenses, err = h.expenseUc.GetExpensesByFilters(r.Context(), category, startDate, endDate)
+	} else {
+		expenses, err = h.expenseUc.GetAllExpenses(r.Context())
+	}
+
 	if err != nil {
-		response.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		response.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 

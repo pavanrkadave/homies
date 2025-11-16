@@ -79,6 +79,62 @@ func (repo *ExpenseMemoryRepository) Update(ctx context.Context, expense *domain
 	return nil
 }
 
+func (repo *ExpenseMemoryRepository) GetByDateRange(ctx context.Context, startDate, endDate string) ([]*domain.Expense, error) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	expenses := make([]*domain.Expense, 0)
+	for _, expense := range repo.expenses {
+		dateStr := expense.Date.Format("2006-01-02")
+		if dateStr >= startDate && dateStr <= endDate {
+			expenses = append(expenses, expense)
+		}
+	}
+	return expenses, nil
+}
+
+func (repo *ExpenseMemoryRepository) GetByCategory(ctx context.Context, category string) ([]*domain.Expense, error) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	expenses := make([]*domain.Expense, 0)
+	for _, expense := range repo.expenses {
+		if expense.Category == category {
+			expenses = append(expenses, expense)
+		}
+	}
+	return expenses, nil
+}
+
+func (repo *ExpenseMemoryRepository) GetByFilters(ctx context.Context, category, startDate, endDate string) ([]*domain.Expense, error) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+
+	expenses := make([]*domain.Expense, 0)
+	for _, expense := range repo.expenses {
+		match := true
+
+		if category != "" && expense.Category != category {
+			match = false
+		}
+
+		if startDate != "" || endDate != "" {
+			dateStr := expense.Date.Format("2006-01-02")
+			if startDate != "" && dateStr < startDate {
+				match = false
+			}
+			if endDate != "" && dateStr > endDate {
+				match = false
+			}
+		}
+
+		if match {
+			expenses = append(expenses, expense)
+		}
+	}
+	return expenses, nil
+}
+
 func (repo *ExpenseMemoryRepository) Delete(ctx context.Context, id string) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
