@@ -145,6 +145,46 @@ func (h *ExpenseHandler) GetExpenseByUser(w http.ResponseWriter, r *http.Request
 	response.RespondWithJSON(w, http.StatusOK, ToExpenseResponses(expenses))
 }
 
+func (h *ExpenseHandler) UpdateExpense(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		response.RespondWithError(w, http.StatusBadRequest, "id parameter is required")
+		return
+	}
+
+	var req ExpenseRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		response.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	splits := make([]domain.Split, len(req.Splits))
+	for i, split := range req.Splits {
+		splits[i] = domain.Split{
+			UserID: split.UserId,
+			Amount: split.Amount,
+		}
+	}
+
+	expense, err := h.expenseUc.UpdateExpense(r.Context(), id, req.Description, req.Category, req.Amount, splits)
+	if err != nil {
+		if err.Error() == "expense not found" {
+			response.RespondWithError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		response.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.RespondWithJSON(w, http.StatusOK, ToExpenseResponse(expense))
+}
+
 func (h *ExpenseHandler) DeleteExpense(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")

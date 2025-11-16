@@ -255,6 +255,75 @@ func (r *ExpensePostgresRepository) GetByUserID(ctx context.Context, userID stri
 	return expenses, nil
 }
 
+func (r *ExpensePostgresRepository) Update(ctx context.Context, expense *domain.Expense) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func(tx *sql.Tx) {
+		err := tx.Rollback()
+		if err != nil {
+			log.Printf("failed to rollback transaction: %w", err)
+		}
+	}(tx)
+
+	// Update expense
+	updateExpenseQuery := `
+		UPDATE expenses 
+		SET description = $1, amount = $2, category = $3, paid_by = $4, updated_at = $5
+		WHERE id = $6
+	`
+	result, err := tx.ExecContext(ctx, updateExpenseQuery,
+		expense.Description,
+		expense.Amount,
+		expense.Category,
+		expense.PaidBy,
+		expense.UpdatedAt,
+		expense.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update expense: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("expense not found")
+	}
+
+	// Delete old splits
+	deleteSplitsQuery := `DELETE FROM splits WHERE expense_id = $1`
+	_, err = tx.ExecContext(ctx, deleteSplitsQuery, expense.ID)
+	if err != nil {
+		return fmt.Errorf("failed to delete old splits: %w", err)
+	}
+
+	// Insert new splits
+	insertSplitQuery := `
+		INSERT INTO splits (expense_id, user_id, amount)
+		VALUES ($1, $2, $3)
+	`
+	for _, split := range expense.Splits {
+		_, err = tx.ExecContext(ctx, insertSplitQuery,
+			expense.ID,
+			split.UserID,
+			split.Amount,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create split: %w", err)
+		}
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
 func (r *ExpensePostgresRepository) Delete(ctx context.Context, id string) error {
 	deleteExpenseQuery := `DELETE FROM expenses WHERE id = $1`
 	_, err := r.db.ExecContext(ctx, deleteExpenseQuery, id)

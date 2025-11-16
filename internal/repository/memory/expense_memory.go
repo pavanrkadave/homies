@@ -67,6 +67,18 @@ func (repo *ExpenseMemoryRepository) GetByUserID(ctx context.Context, userID str
 	return expenses, nil
 }
 
+func (repo *ExpenseMemoryRepository) Update(ctx context.Context, expense *domain.Expense) error {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+
+	if _, ok := repo.expenses[expense.ID]; !ok {
+		return fmt.Errorf("expense not found")
+	}
+
+	repo.expenses[expense.ID] = expense
+	return nil
+}
+
 func (repo *ExpenseMemoryRepository) Delete(ctx context.Context, id string) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()

@@ -49,3 +49,21 @@ func (e *Expense) Validate() error {
 
 	return nil
 }
+
+func (e *Expense) Update(description, category string, amount float64, splits []Split) error {
+	if description != "" {
+		e.Description = description
+	}
+	if category != "" {
+		e.Category = category
+	}
+	if amount > 0 {
+		e.Amount = amount
+	}
+	if len(splits) > 0 {
+		e.Splits = splits
+	}
+	e.UpdatedAt = time.Now()
+
+	return e.Validate()
+}

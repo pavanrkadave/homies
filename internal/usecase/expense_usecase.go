@@ -15,6 +15,7 @@ type ExpenseUseCase interface {
 	GetExpense(ctx context.Context, id string) (*domain.Expense, error)
 	GetAllExpenses(ctx context.Context) ([]*domain.Expense, error)
 	GetExpensesByUser(ctx context.Context, userID string) ([]*domain.Expense, error)
+	UpdateExpense(ctx context.Context, id, description, category string, amount float64, splits []domain.Split) (*domain.Expense, error)
 	DeleteExpense(ctx context.Context, id string) error
 	CalculateBalances(ctx context.Context) (*domain.BalanceSummary, error)
 }
@@ -85,6 +86,36 @@ func (e *expenseUseCase) GetExpensesByUser(ctx context.Context, userID string) (
 		return nil, err
 	}
 	return e.expenseRepo.GetByUserID(ctx, userID)
+}
+
+func (e *expenseUseCase) UpdateExpense(ctx context.Context, id, description, category string, amount float64, splits []domain.Split) (*domain.Expense, error) {
+	// Get existing expense
+	expense, err := e.expenseRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate users in splits exist
+	for _, split := range splits {
+		_, err := e.userRepo.GetByID(ctx, split.UserID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Update expense fields
+	err = expense.Update(description, category, amount, splits)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save to repository
+	err = e.expenseRepo.Update(ctx, expense)
+	if err != nil {
+		return nil, err
+	}
+
+	return expense, nil
 }
 
 func (e *expenseUseCase) DeleteExpense(ctx context.Context, id string) error {

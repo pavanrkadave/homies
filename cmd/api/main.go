@@ -78,6 +78,8 @@ func main() {
 			}
 		case http.MethodPost:
 			expenseHandler.CreateExpense(writer, request)
+		case http.MethodPut:
+			expenseHandler.UpdateExpense(writer, request)
 		case http.MethodDelete:
 			expenseHandler.DeleteExpense(writer, request)
 		default:
