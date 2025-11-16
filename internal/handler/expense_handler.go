@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -248,4 +249,60 @@ func (h *ExpenseHandler) DeleteExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *ExpenseHandler) GetUserStats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		response.RespondWithError(w, http.StatusBadRequest, "user_id parameter is required")
+		return
+	}
+
+	stats, err := h.expenseUc.GetUserStats(r.Context(), userID)
+	if err != nil {
+		response.RespondWithError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	response.RespondWithJSON(w, http.StatusOK, stats)
+}
+
+func (h *ExpenseHandler) GetMonthlySummary(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	yearStr := r.URL.Query().Get("year")
+	monthStr := r.URL.Query().Get("month")
+
+	if yearStr == "" || monthStr == "" {
+		response.RespondWithError(w, http.StatusBadRequest, "year and month parameters are required")
+		return
+	}
+
+	year := 0
+	month := 0
+	if _, err := fmt.Sscanf(yearStr, "%d", &year); err != nil {
+		response.RespondWithError(w, http.StatusBadRequest, "invalid year format")
+		return
+	}
+
+	if _, err := fmt.Sscanf(monthStr, "%d", &month); err != nil {
+		response.RespondWithError(w, http.StatusBadRequest, "invalid month format")
+		return
+	}
+
+	summary, err := h.expenseUc.GetMonthlySummary(r.Context(), year, month)
+	if err != nil {
+		response.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.RespondWithJSON(w, http.StatusOK, summary)
 }

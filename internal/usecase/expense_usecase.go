@@ -20,6 +20,8 @@ type ExpenseUseCase interface {
 	GetExpensesByDateRange(ctx context.Context, startDate, endDate string) ([]*domain.Expense, error)
 	GetExpensesByCategory(ctx context.Context, category string) ([]*domain.Expense, error)
 	GetExpensesByFilters(ctx context.Context, category, startDate, endDate string) ([]*domain.Expense, error)
+	GetUserStats(ctx context.Context, userID string) (*domain.UserStats, error)
+	GetMonthlySummary(ctx context.Context, year, month int) (*domain.MonthlySummary, error)
 	UpdateExpense(ctx context.Context, id, description, category string, amount float64, splits []domain.Split) (*domain.Expense, error)
 	DeleteExpense(ctx context.Context, id string) error
 	CalculateBalances(ctx context.Context) (*domain.BalanceSummary, error)
@@ -269,4 +271,94 @@ func calculateSettlements(balances []domain.Balance) []domain.Settlement {
 		}
 	}
 	return settlements
+}
+
+func (e *expenseUseCase) GetUserStats(ctx context.Context, userID string) (*domain.UserStats, error) {
+	// Verify user exists
+	_, err := e.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all expenses
+	expenses, err := e.expenseRepo.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.UserStats{
+		UserID:     userID,
+		ByCategory: make(map[string]float64),
+	}
+
+	// Calculate statistics
+	for _, expense := range expenses {
+		// Count expenses where user is payer
+		if expense.PaidBy == userID {
+			stats.TotalPaid += expense.Amount
+			stats.ExpenseCount++
+			stats.ByCategory[expense.Category] += expense.Amount
+		}
+
+		// Count expenses where user owes
+		for _, split := range expense.Splits {
+			if split.UserID == userID {
+				stats.TotalOwed += split.Amount
+			}
+		}
+	}
+
+	// Calculate net balance (positive means others owe you, negative means you owe)
+	stats.NetBalance = stats.TotalPaid - stats.TotalOwed
+
+	return stats, nil
+}
+
+func (e *expenseUseCase) GetMonthlySummary(ctx context.Context, year, month int) (*domain.MonthlySummary, error) {
+	// Validate month
+	if month < 1 || month > 12 {
+		return nil, errors.New("month must be between 1 and 12")
+	}
+
+	// Calculate date range for the month
+	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	endDate := startDate.AddDate(0, 1, 0).Add(-time.Second)
+
+	// Format dates for query
+	startDateStr := startDate.Format("2006-01-02")
+	endDateStr := endDate.Format("2006-01-02")
+
+	// Get expenses for the month
+	expenses, err := e.expenseRepo.GetByDateRange(ctx, startDateStr, endDateStr)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &domain.MonthlySummary{
+		Year:       year,
+		Month:      month,
+		ByCategory: make(map[string]float64),
+	}
+
+	// Calculate summary
+	var topCategoryAmount float64
+	for _, expense := range expenses {
+		summary.TotalExpenses += expense.Amount
+		summary.ExpenseCount++
+		summary.ByCategory[expense.Category] += expense.Amount
+
+		// Track top category
+		if summary.ByCategory[expense.Category] > topCategoryAmount {
+			topCategoryAmount = summary.ByCategory[expense.Category]
+			summary.TopCategory = expense.Category
+		}
+	}
+
+	// Calculate average per day
+	daysInMonth := endDate.Day()
+	if summary.ExpenseCount > 0 {
+		summary.AveragePerDay = summary.TotalExpenses / float64(daysInMonth)
+	}
+
+	return summary, nil
 }

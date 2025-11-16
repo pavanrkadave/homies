@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/pavanrkadave/homies/internal/domain"
 )
@@ -386,5 +387,151 @@ func TestExpenseUseCase_GetExpensesByFilters_NoFilters(t *testing.T) {
 	// Should return all expenses
 	if len(expenses) != 2 {
 		t.Errorf("Expected 2 expenses, got: %v", len(expenses))
+	}
+}
+
+func TestExpenseUseCase_GetUserStats(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Create test users
+	user1 := &domain.User{ID: "user1", Name: "User1", Email: "user1@test.com"}
+	user2 := &domain.User{ID: "user2", Name: "User2", Email: "user2@test.com"}
+	_ = userRepo.Create(ctx, user1)
+	_ = userRepo.Create(ctx, user2)
+
+	// Create expenses
+	// User1 paid 150 total (100 food + 50 entertainment)
+	_, _ = expenseUC.CreateExpense(ctx, "Groceries", "food", user1.ID, 100.0, []domain.Split{
+		{UserID: user1.ID, Amount: 50.0},
+		{UserID: user2.ID, Amount: 50.0},
+	})
+	_, _ = expenseUC.CreateExpense(ctx, "Movie", "entertainment", user1.ID, 50.0, []domain.Split{
+		{UserID: user1.ID, Amount: 25.0},
+		{UserID: user2.ID, Amount: 25.0},
+	})
+
+	// Get stats for user1
+	stats, err := expenseUC.GetUserStats(ctx, user1.ID)
+	if err != nil {
+		t.Fatalf("Failed to get user stats: %v", err)
+	}
+
+	// Verify stats
+	if stats.UserID != user1.ID {
+		t.Errorf("Expected user ID %s, got: %s", user1.ID, stats.UserID)
+	}
+	if stats.TotalPaid != 150.0 {
+		t.Errorf("Expected total paid 150.0, got: %v", stats.TotalPaid)
+	}
+	if stats.TotalOwed != 75.0 {
+		t.Errorf("Expected total owed 75.0, got: %v", stats.TotalOwed)
+	}
+	if stats.NetBalance != 75.0 {
+		t.Errorf("Expected net balance 75.0, got: %v", stats.NetBalance)
+	}
+	if stats.ExpenseCount != 2 {
+		t.Errorf("Expected expense count 2, got: %v", stats.ExpenseCount)
+	}
+
+	// Check category breakdown
+	if stats.ByCategory["food"] != 100.0 {
+		t.Errorf("Expected food category 100.0, got: %v", stats.ByCategory["food"])
+	}
+	if stats.ByCategory["entertainment"] != 50.0 {
+		t.Errorf("Expected entertainment category 50.0, got: %v", stats.ByCategory["entertainment"])
+	}
+}
+
+func TestExpenseUseCase_GetUserStats_UserNotFound(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Try to get stats for non-existent user
+	_, err := expenseUC.GetUserStats(ctx, "nonexistent")
+	if err == nil {
+		t.Fatal("Expected error for non-existent user, got nil")
+	}
+}
+
+func TestExpenseUseCase_GetMonthlySummary(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Create test user
+	user1 := &domain.User{ID: "user1", Name: "User1", Email: "user1@test.com"}
+	_ = userRepo.Create(ctx, user1)
+
+	// Create expenses with specific dates
+	expense1, _ := expenseUC.CreateExpense(ctx, "Groceries", "food", user1.ID, 100.0, []domain.Split{{UserID: user1.ID, Amount: 100.0}})
+	expense2, _ := expenseUC.CreateExpense(ctx, "Restaurant", "food", user1.ID, 50.0, []domain.Split{{UserID: user1.ID, Amount: 50.0}})
+	expense3, _ := expenseUC.CreateExpense(ctx, "Movie", "entertainment", user1.ID, 30.0, []domain.Split{{UserID: user1.ID, Amount: 30.0}})
+
+	// Set dates to November 2025
+	expense1.Date = time.Date(2025, 11, 5, 0, 0, 0, 0, time.UTC)
+	expense2.Date = time.Date(2025, 11, 15, 0, 0, 0, 0, time.UTC)
+	expense3.Date = time.Date(2025, 11, 20, 0, 0, 0, 0, time.UTC)
+
+	// Get monthly summary for November 2025
+	summary, err := expenseUC.GetMonthlySummary(ctx, 2025, 11)
+	if err != nil {
+		t.Fatalf("Failed to get monthly summary: %v", err)
+	}
+
+	// Verify summary
+	if summary.Year != 2025 {
+		t.Errorf("Expected year 2025, got: %v", summary.Year)
+	}
+	if summary.Month != 11 {
+		t.Errorf("Expected month 11, got: %v", summary.Month)
+	}
+	if summary.TotalExpenses != 180.0 {
+		t.Errorf("Expected total expenses 180.0, got: %v", summary.TotalExpenses)
+	}
+	if summary.ExpenseCount != 3 {
+		t.Errorf("Expected expense count 3, got: %v", summary.ExpenseCount)
+	}
+
+	// Check category breakdown
+	if summary.ByCategory["food"] != 150.0 {
+		t.Errorf("Expected food category 150.0, got: %v", summary.ByCategory["food"])
+	}
+	if summary.ByCategory["entertainment"] != 30.0 {
+		t.Errorf("Expected entertainment category 30.0, got: %v", summary.ByCategory["entertainment"])
+	}
+
+	// Check top category
+	if summary.TopCategory != "food" {
+		t.Errorf("Expected top category 'food', got: %s", summary.TopCategory)
+	}
+
+	// Check average per day (180 / 30 days in November)
+	if summary.AveragePerDay != 6.0 {
+		t.Errorf("Expected average per day 6.0, got: %v", summary.AveragePerDay)
+	}
+}
+
+func TestExpenseUseCase_GetMonthlySummary_InvalidMonth(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Try with invalid month
+	_, err := expenseUC.GetMonthlySummary(ctx, 2025, 13)
+	if err == nil {
+		t.Fatal("Expected error for invalid month, got nil")
+	}
+
+	// Try with month 0
+	_, err = expenseUC.GetMonthlySummary(ctx, 2025, 0)
+	if err == nil {
+		t.Fatal("Expected error for month 0, got nil")
 	}
 }

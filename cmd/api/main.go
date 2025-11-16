@@ -112,6 +112,22 @@ func main() {
 		}
 	})
 
+	mux.HandleFunc("/users/stats", func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodGet {
+			expenseHandler.GetUserStats(writer, request)
+		} else {
+			response.RespondWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
+		}
+	})
+
+	mux.HandleFunc("/expenses/monthly", func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodGet {
+			expenseHandler.GetMonthlySummary(writer, request)
+		} else {
+			response.RespondWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
+		}
+	})
+
 	middlewareHandler := middleware.Recovery(middleware.Logger(middleware.CORS(mux)))
 
 	log.Printf("✓ Server starting on :%s with middleware enabled", cfg.Server.Port)
