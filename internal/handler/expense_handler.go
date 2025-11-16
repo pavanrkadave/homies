@@ -74,6 +74,36 @@ func (h *ExpenseHandler) CreateExpense(w http.ResponseWriter, r *http.Request) {
 	response.RespondWithJSON(w, http.StatusCreated, ToExpenseResponse(expense))
 }
 
+type EqualSplitRequest struct {
+	Description string   `json:"description"`
+	Amount      float64  `json:"amount"`
+	Category    string   `json:"category"`
+	PaidBy      string   `json:"paid_by"`
+	UserIDs     []string `json:"user_ids"`
+}
+
+func (h *ExpenseHandler) CreateExpenseWithEqualSplit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	var req EqualSplitRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		response.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	expense, err := h.expenseUc.CreateExpenseWithEqualSplit(r.Context(), req.Description, req.Category, req.PaidBy, req.Amount, req.UserIDs)
+	if err != nil {
+		response.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.RespondWithJSON(w, http.StatusCreated, ToExpenseResponse(expense))
+}
+
 func (h *ExpenseHandler) GetAllExpenses(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")

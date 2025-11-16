@@ -87,6 +87,14 @@ func main() {
 		}
 	})
 
+	mux.HandleFunc("/expenses/equal-split", func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodPost {
+			expenseHandler.CreateExpenseWithEqualSplit(writer, request)
+		} else {
+			response.RespondWithError(writer, http.StatusMethodNotAllowed, "Method not allowed")
+		}
+	})
+
 	mux.HandleFunc("/expenses/user", func(writer http.ResponseWriter, request *http.Request) {
 		if request.Method == http.MethodGet {
 			expenseHandler.GetExpenseByUser(writer, request)

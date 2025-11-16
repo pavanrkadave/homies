@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"math"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 
 type ExpenseUseCase interface {
 	CreateExpense(ctx context.Context, description, category, paidBy string, amount float64, splits []domain.Split) (*domain.Expense, error)
+	CreateExpenseWithEqualSplit(ctx context.Context, description, category, paidBy string, amount float64, userIDs []string) (*domain.Expense, error)
 	GetExpense(ctx context.Context, id string) (*domain.Expense, error)
 	GetAllExpenses(ctx context.Context) ([]*domain.Expense, error)
 	GetExpensesByUser(ctx context.Context, userID string) ([]*domain.Expense, error)
@@ -70,6 +72,47 @@ func (e *expenseUseCase) CreateExpense(ctx context.Context, description, categor
 	}
 
 	return expense, nil
+}
+
+func (e *expenseUseCase) CreateExpenseWithEqualSplit(ctx context.Context, description, category, paidBy string, amount float64, userIDs []string) (*domain.Expense, error) {
+	if len(userIDs) == 0 {
+		return nil, errors.New("at least one user is required for equal split")
+	}
+
+	// Validate all users exist
+	for _, userID := range userIDs {
+		_, err := e.userRepo.GetByID(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Calculate equal split amount
+	splitAmount := amount / float64(len(userIDs))
+
+	// Handle rounding: calculate remainder and add to last user
+	var splits []domain.Split
+	var totalAllocated float64
+
+	for i, userID := range userIDs {
+		if i == len(userIDs)-1 {
+			// Last user gets the remainder to ensure exact total
+			splits = append(splits, domain.Split{
+				UserID: userID,
+				Amount: amount - totalAllocated,
+			})
+		} else {
+			// Round to 2 decimal places
+			roundedAmount := math.Round(splitAmount*100) / 100
+			splits = append(splits, domain.Split{
+				UserID: userID,
+				Amount: roundedAmount,
+			})
+			totalAllocated += roundedAmount
+		}
+	}
+
+	return e.CreateExpense(ctx, description, category, paidBy, amount, splits)
 }
 
 func (e *expenseUseCase) GetExpense(ctx context.Context, id string) (*domain.Expense, error) {

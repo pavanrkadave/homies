@@ -159,3 +159,94 @@ func TestExpenseUseCase_UpdateExpense_ValidationError(t *testing.T) {
 		t.Fatal("Expected validation error for invalid splits, got nil")
 	}
 }
+
+func TestExpenseUseCase_CreateExpenseWithEqualSplit(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Create test users
+	user1 := &domain.User{ID: "user1", Name: "User1", Email: "user1@test.com"}
+	user2 := &domain.User{ID: "user2", Name: "User2", Email: "user2@test.com"}
+	user3 := &domain.User{ID: "user3", Name: "User3", Email: "user3@test.com"}
+	_ = userRepo.Create(ctx, user1)
+	_ = userRepo.Create(ctx, user2)
+	_ = userRepo.Create(ctx, user3)
+
+	// Create expense with equal split
+	userIDs := []string{user1.ID, user2.ID, user3.ID}
+	expense, err := expenseUC.CreateExpenseWithEqualSplit(ctx, "Team Dinner", "food", user1.ID, 100.0, userIDs)
+	if err != nil {
+		t.Fatalf("Failed to create expense with equal split: %v", err)
+	}
+
+	// Verify expense was created
+	if expense.Description != "Team Dinner" {
+		t.Errorf("Expected description 'Team Dinner', got: %v", expense.Description)
+	}
+	if expense.Amount != 100.0 {
+		t.Errorf("Expected amount 100.0, got: %v", expense.Amount)
+	}
+
+	// Verify splits
+	if len(expense.Splits) != 3 {
+		t.Fatalf("Expected 3 splits, got: %v", len(expense.Splits))
+	}
+
+	// Calculate total of splits
+	var total float64
+	for _, split := range expense.Splits {
+		total += split.Amount
+	}
+
+	// Verify total matches expense amount
+	if total != 100.0 {
+		t.Errorf("Expected total splits to be 100.0, got: %v", total)
+	}
+}
+
+func TestExpenseUseCase_CreateExpenseWithEqualSplit_NoUsers(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Try to create expense with no users
+	_, err := expenseUC.CreateExpenseWithEqualSplit(ctx, "Test", "test", "user1", 100.0, []string{})
+	if err == nil {
+		t.Fatal("Expected error when creating equal split with no users, got nil")
+	}
+}
+
+func TestExpenseUseCase_CreateExpenseWithEqualSplit_UnevenAmount(t *testing.T) {
+	expenseRepo := newMockExpenseRepository()
+	userRepo := newMockUserRepository()
+	expenseUC := NewExpenseUseCase(expenseRepo, userRepo)
+	ctx := context.Background()
+
+	// Create test users
+	user1 := &domain.User{ID: "user1", Name: "User1", Email: "user1@test.com"}
+	user2 := &domain.User{ID: "user2", Name: "User2", Email: "user2@test.com"}
+	user3 := &domain.User{ID: "user3", Name: "User3", Email: "user3@test.com"}
+	_ = userRepo.Create(ctx, user1)
+	_ = userRepo.Create(ctx, user2)
+	_ = userRepo.Create(ctx, user3)
+
+	// Create expense with amount that doesn't divide evenly (100 / 3 = 33.33...)
+	userIDs := []string{user1.ID, user2.ID, user3.ID}
+	expense, err := expenseUC.CreateExpenseWithEqualSplit(ctx, "Uneven Split", "test", user1.ID, 100.0, userIDs)
+	if err != nil {
+		t.Fatalf("Failed to create expense with uneven split: %v", err)
+	}
+
+	// Verify total still equals expense amount (rounding handled correctly)
+	var total float64
+	for _, split := range expense.Splits {
+		total += split.Amount
+	}
+
+	if total != 100.0 {
+		t.Errorf("Expected total splits to be 100.0 even with rounding, got: %v", total)
+	}
+}
