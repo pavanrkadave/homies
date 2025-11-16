@@ -6,13 +6,31 @@ import (
 	"net/http"
 
 	"github.com/pavanrkadave/homies/config"
+	_ "github.com/pavanrkadave/homies/docs/swagger"
 	"github.com/pavanrkadave/homies/internal/handler"
 	"github.com/pavanrkadave/homies/internal/middleware"
 	"github.com/pavanrkadave/homies/internal/repository/postgres"
 	"github.com/pavanrkadave/homies/internal/usecase"
 	"github.com/pavanrkadave/homies/pkg/database"
 	"github.com/pavanrkadave/homies/pkg/response"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
+
+// @title           Homies Expense Tracker API
+// @version         1.0
+// @description     A production-ready expense tracker REST API for roommates to track shared expenses, split costs, and calculate settlements.
+// @description     Built with Go following Clean Architecture principles.
+
+// @contact.name   API Support
+// @contact.email  support@homies.com
+
+// @license.name  MIT
+// @license.url   https://opensource.org/licenses/MIT
+
+// @host      localhost:3000
+// @BasePath  /
+
+// @schemes http https
 
 func main() {
 
@@ -128,8 +146,12 @@ func main() {
 		}
 	})
 
+	// Swagger UI
+	mux.HandleFunc("/swagger/", httpSwagger.WrapHandler)
+
 	middlewareHandler := middleware.Recovery(middleware.Logger(middleware.CORS(mux)))
 
 	log.Printf("✓ Server starting on :%s with middleware enabled", cfg.Server.Port)
+	log.Printf("✓ Swagger UI available at http://localhost:%s/swagger/", cfg.Server.Port)
 	log.Fatal(http.ListenAndServe(":"+cfg.Server.Port, middlewareHandler))
 }

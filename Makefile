@@ -96,8 +96,14 @@ migrate-create:
 swagger:
 	@echo "Generating Swagger documentation..."
 	@which swag > /dev/null || (echo "Installing swag..." && go install github.com/swaggo/swag/cmd/swag@latest)
-	@swag init -g cmd/api/main.go -o docs/swagger
+	@swag init -g cmd/api/main.go -o docs/swagger --parseDependency --parseInternal
 	@echo "✓ Swagger docs generated: docs/swagger/"
+	@echo "✓ View at: http://localhost:3000/swagger/index.html"
+
+swagger-serve:
+	@echo "Starting application with Swagger UI..."
+	@echo "Swagger UI will be available at: http://localhost:3000/swagger/index.html"
+	@go run cmd/api/main.go
 
 swagger-serve:
 	@echo "Swagger UI available at: http://localhost:3000/swagger/index.html"

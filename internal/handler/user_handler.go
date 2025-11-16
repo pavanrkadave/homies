@@ -35,6 +35,16 @@ type UserResponse struct {
 	CreatedAt string `json:"created_at"`
 }
 
+// CreateUser godoc
+// @Summary      Create a new user
+// @Description  Create a new user with name and email
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        user  body      CreateUserRequest  true  "User data"
+// @Success      201   {object}  UserResponse
+// @Failure      400   {object}  map[string]string
+// @Router       /users [post]
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -58,6 +68,14 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	response.RespondWithJSON(w, http.StatusCreated, ToUserResponse(user))
 }
 
+// GetAllUsers godoc
+// @Summary      Get all users
+// @Description  Retrieve a list of all users
+// @Tags         users
+// @Produce      json
+// @Success      200  {array}   UserResponse
+// @Failure      500  {object}  map[string]string
+// @Router       /users [get]
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -72,6 +90,19 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	response.RespondWithJSON(w, http.StatusOK, ToUserResponses(users))
 }
 
+// UpdateUser godoc
+// @Summary      Update a user
+// @Description  Update user information by ID
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id    query     string             true  "User ID"
+// @Param        user  body      UpdateUserRequest  true  "Updated user data"
+// @Success      200   {object}  UserResponse
+// @Failure      400   {object}  map[string]string
+// @Failure      404   {object}  map[string]string
+// @Failure      409   {object}  map[string]string
+// @Router       /users [put]
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -108,6 +139,16 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	response.RespondWithJSON(w, http.StatusOK, ToUserResponse(user))
 }
 
+// GetUserByID godoc
+// @Summary      Get user by ID
+// @Description  Retrieve a specific user by their ID
+// @Tags         users
+// @Produce      json
+// @Param        id   query     string  true  "User ID"
+// @Success      200  {object}  UserResponse
+// @Failure      400  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Router       /users [get]
 func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")

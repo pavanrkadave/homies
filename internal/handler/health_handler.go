@@ -20,6 +20,13 @@ type HealthResponse struct {
 	Database string `json:"database"`
 }
 
+// Health godoc
+// @Summary      Health check
+// @Description  Check the health status of the API and database
+// @Tags         health
+// @Produce      json
+// @Success      200  {object}  HealthResponse
+// @Router       /health [get]
 func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")

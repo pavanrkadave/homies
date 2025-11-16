@@ -46,6 +46,16 @@ type SplitResponse struct {
 	Amount float64 `json:"amount"`
 }
 
+// CreateExpense godoc
+// @Summary      Create a new expense
+// @Description  Create a new expense with custom splits
+// @Tags         expenses
+// @Accept       json
+// @Produce      json
+// @Param        expense  body      ExpenseRequest  true  "Expense data"
+// @Success      201      {object}  ExpenseResponse
+// @Failure      400      {object}  map[string]string
+// @Router       /expenses [post]
 func (h *ExpenseHandler) CreateExpense(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -83,6 +93,16 @@ type EqualSplitRequest struct {
 	UserIDs     []string `json:"user_ids"`
 }
 
+// CreateExpenseWithEqualSplit godoc
+// @Summary      Create expense with equal split
+// @Description  Create a new expense with equal splits among specified users
+// @Tags         expenses
+// @Accept       json
+// @Produce      json
+// @Param        expense  body      EqualSplitRequest  true  "Equal split expense data"
+// @Success      201      {object}  ExpenseResponse
+// @Failure      400      {object}  map[string]string
+// @Router       /expenses/equal-split [post]
 func (h *ExpenseHandler) CreateExpenseWithEqualSplit(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -105,6 +125,17 @@ func (h *ExpenseHandler) CreateExpenseWithEqualSplit(w http.ResponseWriter, r *h
 	response.RespondWithJSON(w, http.StatusCreated, ToExpenseResponse(expense))
 }
 
+// GetAllExpenses godoc
+// @Summary      Get all expenses
+// @Description  Retrieve all expenses with optional filters (category, date range)
+// @Tags         expenses
+// @Produce      json
+// @Param        category    query     string  false  "Filter by category"
+// @Param        start_date  query     string  false  "Start date (YYYY-MM-DD)"
+// @Param        end_date    query     string  false  "End date (YYYY-MM-DD)"
+// @Success      200         {array}   ExpenseResponse
+// @Failure      400         {object}  map[string]string
+// @Router       /expenses [get]
 func (h *ExpenseHandler) GetAllExpenses(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -134,6 +165,14 @@ func (h *ExpenseHandler) GetAllExpenses(w http.ResponseWriter, r *http.Request) 
 	response.RespondWithJSON(w, http.StatusOK, ToExpenseResponses(expenses))
 }
 
+// GetBalances godoc
+// @Summary      Get all balances
+// @Description  Calculate and retrieve balances between all users
+// @Tags         balances
+// @Produce      json
+// @Success      200  {array}   domain.Balance
+// @Failure      500  {object}  map[string]string
+// @Router       /balances [get]
 func (h *ExpenseHandler) GetBalances(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -170,6 +209,16 @@ func (h *ExpenseHandler) GetExpenseByID(w http.ResponseWriter, r *http.Request) 
 	response.RespondWithJSON(w, http.StatusOK, ToExpenseResponse(expense))
 }
 
+// GetExpenseByUser godoc
+// @Summary      Get expenses by user
+// @Description  Retrieve all expenses for a specific user
+// @Tags         expenses
+// @Produce      json
+// @Param        user_id  query     string  true  "User ID"
+// @Success      200      {array}   ExpenseResponse
+// @Failure      400      {object}  map[string]string
+// @Failure      404      {object}  map[string]string
+// @Router       /expenses/user [get]
 func (h *ExpenseHandler) GetExpenseByUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -191,6 +240,18 @@ func (h *ExpenseHandler) GetExpenseByUser(w http.ResponseWriter, r *http.Request
 	response.RespondWithJSON(w, http.StatusOK, ToExpenseResponses(expenses))
 }
 
+// UpdateExpense godoc
+// @Summary      Update an expense
+// @Description  Update an existing expense by ID
+// @Tags         expenses
+// @Accept       json
+// @Produce      json
+// @Param        id       query     string          true  "Expense ID"
+// @Param        expense  body      ExpenseRequest  true  "Updated expense data"
+// @Success      200      {object}  ExpenseResponse
+// @Failure      400      {object}  map[string]string
+// @Failure      404      {object}  map[string]string
+// @Router       /expenses [put]
 func (h *ExpenseHandler) UpdateExpense(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -231,6 +292,15 @@ func (h *ExpenseHandler) UpdateExpense(w http.ResponseWriter, r *http.Request) {
 	response.RespondWithJSON(w, http.StatusOK, ToExpenseResponse(expense))
 }
 
+// DeleteExpense godoc
+// @Summary      Delete an expense
+// @Description  Delete an expense by ID
+// @Tags         expenses
+// @Param        id   query     string  true  "Expense ID"
+// @Success      204  "No Content"
+// @Failure      400  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /expenses [delete]
 func (h *ExpenseHandler) DeleteExpense(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -251,6 +321,16 @@ func (h *ExpenseHandler) DeleteExpense(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// GetUserStats godoc
+// @Summary      Get user statistics
+// @Description  Get spending statistics for a specific user
+// @Tags         statistics
+// @Produce      json
+// @Param        user_id  query     string  true  "User ID"
+// @Success      200      {object}  domain.UserStats
+// @Failure      400      {object}  map[string]string
+// @Failure      404      {object}  map[string]string
+// @Router       /users/stats [get]
 func (h *ExpenseHandler) GetUserStats(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -272,6 +352,16 @@ func (h *ExpenseHandler) GetUserStats(w http.ResponseWriter, r *http.Request) {
 	response.RespondWithJSON(w, http.StatusOK, stats)
 }
 
+// GetMonthlySummary godoc
+// @Summary      Get monthly summary
+// @Description  Get expense summary for a specific month
+// @Tags         statistics
+// @Produce      json
+// @Param        year   query     int  true  "Year"
+// @Param        month  query     int  true  "Month (1-12)"
+// @Success      200    {object}  domain.MonthlySummary
+// @Failure      400    {object}  map[string]string
+// @Router       /expenses/monthly [get]
 func (h *ExpenseHandler) GetMonthlySummary(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")

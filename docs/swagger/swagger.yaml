@@ -1,0 +1,545 @@
+basePath: /
+definitions:
+  github_com_pavanrkadave_homies_internal_domain.Balance:
+    properties:
+      amount:
+        type: number
+      user_id:
+        type: string
+    type: object
+  github_com_pavanrkadave_homies_internal_domain.MonthlySummary:
+    properties:
+      average_per_day:
+        type: number
+      by_category:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      expense_count:
+        type: integer
+      month:
+        type: integer
+      top_category:
+        type: string
+      total_expenses:
+        type: number
+      year:
+        type: integer
+    type: object
+  github_com_pavanrkadave_homies_internal_domain.UserStats:
+    properties:
+      by_category:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+      expense_count:
+        type: integer
+      net_balance:
+        type: number
+      total_owed:
+        type: number
+      total_paid:
+        type: number
+      user_id:
+        type: string
+    type: object
+  internal_handler.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_handler.EqualSplitRequest:
+    properties:
+      amount:
+        type: number
+      category:
+        type: string
+      description:
+        type: string
+      paid_by:
+        type: string
+      user_ids:
+        items:
+          type: string
+        type: array
+    type: object
+  internal_handler.ExpenseRequest:
+    properties:
+      amount:
+        type: number
+      category:
+        type: string
+      description:
+        type: string
+      paid_by:
+        type: string
+      splits:
+        items:
+          $ref: '#/definitions/internal_handler.SplitRequest'
+        type: array
+    type: object
+  internal_handler.ExpenseResponse:
+    properties:
+      amount:
+        type: number
+      category:
+        type: string
+      created_at:
+        type: string
+      date:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      paid_by:
+        type: string
+      splits:
+        items:
+          $ref: '#/definitions/internal_handler.SplitResponse'
+        type: array
+    type: object
+  internal_handler.HealthResponse:
+    properties:
+      database:
+        type: string
+      status:
+        type: string
+    type: object
+  internal_handler.SplitRequest:
+    properties:
+      amount:
+        type: number
+      user_id:
+        type: string
+    type: object
+  internal_handler.SplitResponse:
+    properties:
+      amount:
+        type: number
+      user_id:
+        type: string
+    type: object
+  internal_handler.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_handler.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact:
+    email: support@homies.com
+    name: API Support
+  description: |-
+    A production-ready expense tracker REST API for roommates to track shared expenses, split costs, and calculate settlements.
+    Built with Go following Clean Architecture principles.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Homies Expense Tracker API
+  version: "1.0"
+paths:
+  /balances:
+    get:
+      description: Calculate and retrieve balances between all users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_pavanrkadave_homies_internal_domain.Balance'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all balances
+      tags:
+      - balances
+  /expenses:
+    delete:
+      description: Delete an expense by ID
+      parameters:
+      - description: Expense ID
+        in: query
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete an expense
+      tags:
+      - expenses
+    get:
+      description: Retrieve all expenses with optional filters (category, date range)
+      parameters:
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.ExpenseResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all expenses
+      tags:
+      - expenses
+    post:
+      consumes:
+      - application/json
+      description: Create a new expense with custom splits
+      parameters:
+      - description: Expense data
+        in: body
+        name: expense
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.ExpenseRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.ExpenseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new expense
+      tags:
+      - expenses
+    put:
+      consumes:
+      - application/json
+      description: Update an existing expense by ID
+      parameters:
+      - description: Expense ID
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Updated expense data
+        in: body
+        name: expense
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.ExpenseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.ExpenseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update an expense
+      tags:
+      - expenses
+  /expenses/equal-split:
+    post:
+      consumes:
+      - application/json
+      description: Create a new expense with equal splits among specified users
+      parameters:
+      - description: Equal split expense data
+        in: body
+        name: expense
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.EqualSplitRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.ExpenseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create expense with equal split
+      tags:
+      - expenses
+  /expenses/monthly:
+    get:
+      description: Get expense summary for a specific month
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        required: true
+        type: integer
+      - description: Month (1-12)
+        in: query
+        name: month
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pavanrkadave_homies_internal_domain.MonthlySummary'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get monthly summary
+      tags:
+      - statistics
+  /expenses/user:
+    get:
+      description: Retrieve all expenses for a specific user
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_handler.ExpenseResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get expenses by user
+      tags:
+      - expenses
+  /health:
+    get:
+      description: Check the health status of the API and database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+  /users:
+    get:
+      description: Retrieve a specific user by their ID
+      parameters:
+      - description: User ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user by ID
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with name and email
+      parameters:
+      - description: User data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handler.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update user information by ID
+      parameters:
+      - description: User ID
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Updated user data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handler.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a user
+      tags:
+      - users
+  /users/stats:
+    get:
+      description: Get spending statistics for a specific user
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_pavanrkadave_homies_internal_domain.UserStats'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user statistics
+      tags:
+      - statistics
+schemes:
+- http
+- https
+swagger: "2.0"
