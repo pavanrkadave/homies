@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	Logger   LoggerConfig
 }
 
 type ServerConfig struct {
@@ -25,6 +26,11 @@ type DatabaseConfig struct {
 	Password string
 	DBName   string
 	SSLMode  string
+}
+
+type LoggerConfig struct {
+	Level string // debug, info, warn, error, fatal
+	Mode  string // development or production
 }
 
 func Load() *Config {
@@ -44,6 +50,10 @@ func Load() *Config {
 			Password: getEnv("DB_PASSWORD", "homies_password"),
 			DBName:   getEnv("DB_NAME", "homies_db"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+		Logger: LoggerConfig{
+			Level: getEnv("LOG_LEVEL", "info"),
+			Mode:  getEnv("LOG_MODE", "development"),
 		},
 	}
 }
